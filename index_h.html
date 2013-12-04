@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>		
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		
+	<title>Glade HTML5 Ad</title>
+<style>
+	canvas {
+		background: #FFFFFF url("img_h/glade_h1.png") no-repeat 0 0;
+		background-size: 100%;		
+		width: 1024px;
+		height: 768px;
+		cursor: pointer;
+		display: block;
+		float: left;
+		border: 0 none;
+		margin: 0px auto 0 auto;
+	}
+	
+	body {		
+		margin: 0 auto;
+		width: 1024px;
+		height: 768px;	
+	}
+
+	.wrapper{
+		margin: 0 auto;
+		width: 1024px;
+		height: 768px;
+		position: relative;			
+		background: #FFFFFF url('img_h/glade_h3.png') no-repeat center 0px;
+		background-size: 100%;
+	}
+
+	.disable {
+        pointer-events: none;
+    }
+    
+    @media (-webkit-min-device-pixel-ratio: 2) {
+        canvas {
+		  background: url("img_h/glade_h1_x2.png") no-repeat 0 0;
+          background-size: 1024px 768px;
+
+        }
+        .wrapper {
+		  background: url("img_h/glade_h3_x2.png") no-repeat 0 0;
+           background-size: 1024px 768px;
+        }
+    }
+
+</style>
+</head>
+    
+<body>
+<div class="wrapper">
+	<canvas width="1024" height="768" id="canvas-1"></canvas>
+</div>
+
+<script src="js/jquery-1.8.2.min.js"></script>
+<script src="js/modernizr-latest.js"></script>
+<script src="js/soundmanager2-nodebug-jsmin.js"></script>
+    
+<script>
+
+/* Audio Setup
+ * ===================================== */
+ var wavesSound;
+
+ // prepare soundmanager for easy use of audio API
+ soundManager.setup({
+ 	url: '',
+ 	preferFlash: false,
+ 	onready: function() {
+ 		// start canvas only after soundmanager is ready
+ 		initCanvas();
+ 	}
+ })
+
+/* Canvas Setup
+ * ===================================== */
+var canvas = document.getElementById('canvas-1'),
+	ctx    = canvas.getContext('2d'),
+	bgImage = new Image(1024, 768),
+	continueLoop = false,
+	startEvent	= 'mousedown',
+	endEvent 	= 'mouseup',
+	moveEvent 	= 'mousemove',
+	mouse,
+	pattern,
+	timer;
+
+var loops = 2;
+var looped = 1;
+
+// change event type if mobile
+if (Modernizr.touch) {
+	startEvent 	= 'touchstart';
+	endEvent 	= 'touchend';
+	moveEvent 	= 'touchmove';
+}
+
+// load "scratched in" image; loaded into a canvas pattern 
+function initCanvas() {
+    console.log('init canvas');
+    
+    // test for retina display
+    if (window.devicePixelRatio > 1 ) {
+        console.log('retina display detected');
+        bgImage.src = "img_h/glade_h2_canvas_x2.png"; 
+    } else {
+        console.log('standard display detected');
+        bgImage.src = "img_h/glade_h2_canvas.png"; 
+    }
+                    
+    
+	bgImage.onload = function(){
+		pattern = ctx.createPattern(bgImage, 'no-repeat');
+		attachHandlers();
+	}
+}
+
+function attachHandlers(){
+	canvas.addEventListener(startEvent, function(e){		
+		mouse = getMouse(e, canvas);
+		ctx.beginPath();
+		ctx.moveTo(mouse.x, mouse.y);
+		if (typeof timer == "undefined") {
+			 wavesSound = soundManager.createSound({ 
+				url: 'sound/sound.mp3',
+			 	id: 'sound1',
+			 	autoLoad: true,
+			 	autoPlay: true,
+			 	onfinish:function() { 
+	                 if(looped < loops) {
+	                      wavesSound.play(); 
+	                      looped++; 
+	                 } 
+	                 else{   
+	                      looped = 0;
+	                 }
+	            }
+			 });
+			//wavesSound.play();
+			//wavesSound.play({  loops: 3      });
+			timer = setTimeout(function(){
+				fillCanvas();
+			}, 5000);
+		}
+		canvas.addEventListener(moveEvent, handleMouseMove, false);
+	});
+	canvas.addEventListener(endEvent, function(){
+		canvas.removeEventListener(moveEvent, handleMouseMove, false);
+	});
+
+	
+}
+
+function handleMouseMove(e) {
+	e.preventDefault();
+	mouse = getMouse(e, canvas);
+	maskBrush(mouse);
+}
+
+function fillCanvas(){
+	var newAlpha = 0;
+	var i = setInterval(function(){
+		if (newAlpha <= 1) {
+			newAlpha += 0.015;
+			ctx.globalAlpha = newAlpha;
+			ctx.drawImage(bgImage, 0, 0, 1024, 768);
+		} else {
+			clearInterval(i);            
+            $('canvas').addClass('disable');
+            //$('curl-img').fadeIn(1000);
+            //$(".bottom-img").fadeOut(1000); 
+            
+		}
+	}, 60);
+
+	//glade text
+    timer = setTimeout(function(){				
+		$("#canvas-1").fadeOut(1000);
+	}, 1500);
+    
+
+}
+
+function maskBrush(mouse) {	
+
+	ctx.save();
+	ctx.lineWidth = 50;
+	//ctx.lineCap = "round";
+	ctx.lineCap = ctx.lineJoin = 'round';
+	ctx.lineTo(mouse.x, mouse.y);
+	ctx.moveTo(mouse.x, mouse.y);
+	ctx.strokeStyle = pattern;
+	//ctx.strokeStyle = '#f00'; // can be any opaque color
+	
+	ctx.stroke();
+}
+
+function getMouse(e, canvas) {
+    var element = canvas,
+        offsetX = 0,
+        offsetY = 0,
+        mx, my;
+
+    // Compute the total offset. It's possible to cache this if you want
+    if (element.offsetParent !== undefined) {
+        do {
+            offsetX += element.offsetLeft;
+            offsetY += element.offsetTop;
+        } while ((element = element.offsetParent));
+    }
+    mx = e.pageX - offsetX;
+    my = e.pageY - offsetY;
+    // We return a simple javascript object with x and y defined
+    return {
+        x: mx,
+        y: my
+    };
+}
+
+</script>
+
+</body>
+</html>
